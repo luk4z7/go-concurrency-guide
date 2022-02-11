@@ -1,3 +1,4 @@
+
 # Go Concurrency Guide
 
 This guide is built on top of the some examples of the book `Go Concurrency in Go` and `Go Programming Language`
@@ -5,7 +6,7 @@ This guide is built on top of the some examples of the book `Go Concurrency in G
 - [Race Condition and Data Race](#race-condition-and-data-race)
 - [Memory Access Synchonization](#memory-access-synchonization)
     -  [Mutex](#mutex)
-    -  [waitgroup](#waitgroup)
+    -  [WaitGroup](#waitgroup)
     -  [RWMutex](#rwmutex)
     -  [Cond](#cond)
     -  [Pool](#pool)
@@ -18,11 +19,14 @@ This guide is built on top of the some examples of the book `Go Concurrency in G
     - [Confinement](#confinement)
     - [Cancellation](#cancellation)
     - [OR Channel](#or-channel)
-    - [OR Done Channel](#or-done-channel)
     - [Error Handling](#error-handling)
     - [Pipelines](#pipelines)
-    - [Fan In](#fan-in)
-    - [Fan Out](#fan-out)
+    - [Fan-in and Fan-out](#fan-in-and-fan-out)
+    - [Or done channel](#or-done-channel)
+    - [Tee channel](#tee-channel)
+    - [Bridge channel](#bridge-channel)
+    - [Queuing](#queuing)
+    - [Context package](#context-package)
 - [References](#references)
 
 
@@ -45,10 +49,12 @@ func main() {
 }
 ```
 
+
 ## Memory Access Synchonization
 
 The sync package contains the concurrency primitives that are most useful for low-level memory access synchronization.
 Critical section is the place in your code that has access to a shared memory
+
 
 ### Mutex
 
@@ -67,6 +73,7 @@ func (c *Counter) Increment() {
 }
 ```
 
+
 ### WaitGroup
 
 Call to add a group of goroutines
@@ -82,6 +89,7 @@ for _, salutation := range []string{"hello", "greetings", "good day"} {
 }
 wg.Wait()
 ```
+
 
 ### RWMutex
 
@@ -121,6 +129,7 @@ defer tw.Flush()
 
 var m sync.RWMutex
 fmt.Fprintf(tw, "Readers\tRWMutext\tMutex\n")
+
 for i := 0; i < 20; i++ {
     count := int(math.Pow(2, float64(i)))
     fmt.Fprintf(
@@ -132,6 +141,7 @@ for i := 0; i < 20; i++ {
     )
 }
 ```
+
 
 ### Cond
 
@@ -158,7 +168,7 @@ func main() {
             c.L.Lock() // critical section
             defer c.L.Unlock()
 
-            //          fmt.Println("Registered and wait ... ")
+            fmt.Println("Registered and wait ... ")
             c.Wait()
 
             fn(p)
@@ -188,6 +198,7 @@ func main() {
 }
 ```
 
+
 ### Once
 
 Ensuring that only one execution will be carried out even among several goroutines
@@ -203,6 +214,7 @@ var once sync.Once
 
 var increments sync.WaitGroup
 increments.Add(100)
+
 for i := 0; i < 100; i++ {
     go func() {
         defer increments.Done()
@@ -213,6 +225,7 @@ for i := 0; i < 100; i++ {
 increments.Wait()
 fmt.Printf("Count is %d\n", count)
 ```
+
 
 ### Pool
 
@@ -230,29 +243,32 @@ func main() {
     myPool := &sync.Pool{
         New: func() interface{} {
             fmt.Println("Creating new instance.")
+
             return struct{}{}
         },
     }
 
-    // Get invoca New function definida no pool caso não existir uma instância iniciada
+    // Get call New function defined in pool if there is no instance started
     myPool.Get()
     instance := myPool.Get()
     fmt.Println("instance", instance)
 
-    // aqui colocamos uma instancia previamente recuperada de volta no pool, isso
-    // aumenta o número de instancias disponiveis para um
+    // here we put a previously retrieved instance back into the pool, 
+    // this increases the number of instances available to one
     myPool.Put(instance)
-    // quando esta chamada for executada, iremos reutilizar a instancia previamente alocada
-    // e coloca-la de volta no pool
+
+    // when this call is executed, we will reuse the 
+    // previously allocated instance and put it back in the pool
     myPool.Get()
 
     var numCalcsCreated int
     calcPool := &sync.Pool{
         New: func() interface{} {
-            //          fmt.Println("new calc pool")
+            fmt.Println("new calc pool")
 
             numCalcsCreated += 1
             mem := make([]byte, 1024)
+
             return &mem
         },
     }
@@ -269,6 +285,7 @@ func main() {
     const numWorkers = 1024 * 1024
     var wg sync.WaitGroup
     wg.Add(numWorkers)
+
     for i := numWorkers; i > 0; i-- {
         go func() {
             defer wg.Done()
@@ -390,11 +407,13 @@ func main() {
 
 		if atomic.LoadInt32(dir) == 1 {
 			fmt.Fprint(out, " . Success!")
+
 			return true
 		}
 
 		takeStep()
 		atomic.AddInt32(dir, -1)
+
 		return false
 	}
 
@@ -430,10 +449,9 @@ func main() {
 	go walk(&peopleInHallway, "Alice")
 	go walk(&peopleInHallway, "Barbara")
 	peopleInHallway.Wait()
-
-	fmt.Println("vim-go")
 }
 ```
+
 
 ### Starvation
 
@@ -499,6 +517,7 @@ func main() {
 }
 ```
 
+
 ## Channels
 
 Channels are one of the synchronization primitives in Go derived from Hoare’s CSP. While they can be used to synchronize access of the memory, they are best used to communicate information between goroutines, default value for channel: nil.
@@ -539,8 +558,7 @@ to send
 stream <- "Hello world"
 ```
 
-Ranging o ver
-
+Ranging over a channel
 the for range break the loop if the channel is closed
 
 ```go
@@ -568,7 +586,6 @@ dataStream = make(chan interface{}, 4)
 both, read and send a channel empty cause deadlock
 
 ```go
-
 var dataStream chan interface{}
 <-dataStream This panics with: fatal error: all goroutines are asleep - deadlock!
 
@@ -599,6 +616,7 @@ close(dataStream) This produces: panic: close of nil channel
       /tmp/babel-23079IVB/go-src-230794uu.go:9 +0x2a
   exit status 2 Yipes! This is probably
 ```
+
 
 ## Patterns
 
@@ -653,6 +671,7 @@ results := chanOwner()
 consumer(results)
 ```
 
+
 ### Cancellation
 
 ```go
@@ -693,9 +712,9 @@ func main() {
 
     <-terminated
     fmt.Println("Done.")
-
 }
 ```
+
 
 ### OR Channel
 
@@ -766,11 +785,10 @@ func main() {
 }
 ```
 
-### OR Done Channel
 
 ### Error Handling
 
-```bash
+```go
 package main
 
 import (
@@ -793,6 +811,7 @@ func main() {
                 var result Result
                 resp, err := http.Get(url)
                 result = Result{Error: err, Response: resp}
+
                 select {
                 case <-done:
                     return
@@ -813,10 +832,12 @@ func main() {
             fmt.Printf("error: %v", result.Error)
             continue
         }
+
         fmt.Printf("Response: %v\n", result.Response.Status)
     }
 }
 ```
+
 
 ### Pipelines
 
@@ -828,6 +849,7 @@ multiply := func(values []int, multiplier int) []int {
     for i, v := range values {
         multipliedValues[i] = v * multiplier
     }
+
     return multipliedValues
 }
 
@@ -836,6 +858,7 @@ add := func(values []int, additive int) []int {
     for i, v := range values {
         addedValues[i] = v + additive
     }
+
     return addedValues
 }
 
@@ -845,11 +868,396 @@ for _, v := range add(multiply(ints, 2), 1) {
 }
 ```
 
-### Fan In
 
-### Fan Out
+### Fan-in and Fan-out
+
+Fan-out is a term to describe the process of starting multiple goroutines to handle pipeline input, and fan-in is a term to describe the process of combining multiple outputs into one channel.
+
+```go
+package main
+
+import (
+    "fmt"
+)
+
+type data int
+
+// distribute work items to multiple uniform actors
+// no data shall be processed twice!
+// received wch
+// response res
+func worker(wch <-chan data, res chan<- data) {
+    for {
+        w, ok := <-wch
+        if !ok {
+            return // return when is closed
+        }
+
+        w *= 2
+        res <- w
+    }
+}
+
+func main() {
+    work := []data{1, 2, 3, 4, 5}
+
+    const numWorkers = 3
+
+    wch := make(chan data, len(work))
+    res := make(chan data, len(work))
+
+    // fan-out, one input channel for all actors
+    for i := 0; i < numWorkers; i++ {
+        go worker(wch, res)
+    }
+
+    // fan-out, one input channel for all actors
+    for _, w := range work {
+        fmt.Println("send to wch : ", w)
+        wch <- w
+    }
+    close(wch)
+
+    // fan-in, one result channel
+    for range work {
+        w := <-res
+        fmt.Println("receive from res : ", w)
+    }
+}
+```
 
 
+### Or done channel
+
+Or done is a way to encapsulate verbosity that can be achieved through for/select breaks to check when a channel has ended, and also avoiding goroutine leakage, the code below could be replaced by a closure that encapsulates that verbosity
+
+```go
+for val := range myChan {
+    // Do something with val
+}
+
+loop:
+for {
+    select {
+    case <-done:
+        break loop
+    case maybeVal, ok := <-myChan:
+        if ok == false {
+            return // or maybe break from for
+        }
+        // Do something with val
+    }
+}
+```
+
+can be created an isolation, a function/method, closure, creating a single goroutine
+
+```go
+orDone := func(done, c <-chan interface{}) <-chan interface{} {
+    valStream := make(chan interface{})
+    go func() {
+        defer close(valStream)
+        for {
+            select {
+            case <-done:
+                return
+            case v, ok := <-c:
+                if ok == false {
+                    return
+                }
+                select {
+                case valStream <- v:
+                case <-done:
+                }
+            }
+        }
+    }()
+
+    return valStream
+}
+
+for val := range orDone(done, myChan) {
+    // Do something with val
+}
+```
+
+
+### Tee channel
+
+Pass the it a channel to read from, and it will return two separate channels that will get the same value:
+
+```go
+tee := func(done <-chan interface{}, in <-chan interface{}) (_, _ <-chan interface{}) {
+
+    out1 := make(chan interface{})
+    out2 := make(chan interface{})
+
+    go func() {
+        defer close(out1)
+        defer close(out2)
+        for val := range orDone(done, in) {
+            var out1, out2 = out1, out2
+            for i := 0; i < 2; i++ {
+                select {
+                case <-done:
+                case out1 <- val:
+                    out1 = nil
+                case out2 <- val:
+                    out2 = nil
+                }
+            }
+        }
+    }()
+
+    return out1, out2
+}
+```
+
+
+### Bridge channel
+
+With this patterns is possible to create a function that destruct a channel of channels into a single channel
+
+```go
+bridge := func(done <-chan interface{}, chanStream <-chan <-chan interface{}) <-chan interface{} {
+    valStream := make(chan interface{})
+    go func() {
+        defer close(valStream)
+        for {
+            var stream <-chan interface{}
+            select {
+            case maybeStream, ok := <-chanStream:
+                if ok == false {
+                    return
+                }
+                stream = maybeStream
+
+            case <-done:
+                return
+            }
+
+            for val := range orDone(done, stream) {
+                select {
+                case valStream <- val:
+                case <-done:
+                }
+            }
+        }
+    }()
+
+    return valStream
+}
+
+genVals := func() <-chan <-chan interface{} {
+    chanStream := make(chan (<-chan interface{}))
+    go func() {
+        defer close(chanStream)
+        for i := 0; i < 10; i++ {
+            stream := make(chan interface{}, 1)
+            stream <- i
+            close(stream)
+            chanStream <- stream
+        }
+    }()
+
+    return chanStream
+}
+
+done := make(chan interface{})
+defer close(done)
+
+for v := range bridge(done, genVals()) {
+    fmt.Printf("%v ", v)
+}
+```
+
+
+### Queuing
+
+buffered channel is a type of queue, Adding queuing prematurely can hide synchronization issues such as deadlocks, we can use the queue to make
+a limit to processing, in this process when the `limit <- struct{}{}` is full the queue is wait to be released `<-limit`, if we remove them the 50 goroutines are created at the same time
+
+```go
+package main
+
+import (
+    "fmt"
+    "runtime"
+    "sync"
+    "time"
+)
+
+func main() {
+    var wg sync.WaitGroup
+    limit := make(chan interface{}, runtime.NumCPU())
+
+    fmt.Printf("Started, Limit %d\n", cap(limit))
+
+    workers := func(l chan<- interface{}, wg *sync.WaitGroup) {
+        for i := 0; i <= 50; i++ {
+            i := i
+
+            limit <- struct{}{}
+            wg.Add(1)
+
+            go func(x int, w *sync.WaitGroup) {
+                defer w.Done()
+
+                time.Sleep(1 * time.Second)
+                fmt.Printf("Process %d\n", i)
+
+                <-limit
+            }(i, wg)
+        }
+    }
+
+    workers(limit, &wg)
+    wg.Wait()
+
+    fmt.Println("Finished")
+}
+```
+
+
+### Context package
+
+in concurrent programs it’s often necessary to preempt operations because of timeouts, cancellation, or failure of another portion of the system. We’ve looked at the idiom of creating a done channel, which flows through your program and cancels all blocking concurrent operations. This works well, but it’s also somewhat limited.
+
+It would be useful if we could communicate extra information alongside the simple notification to cancel: why the cancellation was occuring, or whether or not our function has a deadline by which it needs to complete.
+
+see below an example to pass value into context, the context package serves two primary purposes: 
+- To provide an API for canceling branches of your call-graph.  
+- To provide a data-bag for transporting request-scoped data through your call-graph
+
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+)
+
+func main() {
+    ProcessRequest("jane", "abc123")
+}
+
+func ProcessRequest(userID, authToken string) {
+    ctx := context.WithValue(context.Background(), "userID", userID)
+    ctx = context.WithValue(ctx, "authToken", authToken)
+    HandleResponse(ctx)
+}
+
+func HandleResponse(ctx context.Context) {
+    fmt.Printf(
+        "handling response for %v (%v)",
+        ctx.Value("userID"),
+        ctx.Value("authToken"),
+    )
+}
+```
+
+another exame with `Timeout`, cancellation in a function has three aspects: 
+
+- A goroutine’s parent may want to cancel it. 
+- A goroutine may want to cancel its children.  
+- Any blocking operations within a goroutine need to be preemptable so that it may be canceled.
+
+The context package helps manage all three of these.
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "sync"
+    "time"
+)
+
+func main() {
+    var wg sync.WaitGroup
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+
+        if err := printGreeting(ctx); err != nil {
+            fmt.Printf("cannot print greeting: %v\n", err)
+            cancel()
+        }
+    }()
+
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        if err := printFarewell(ctx); err != nil {
+            fmt.Printf("cannot print farewell: %v\n", err)
+        }
+    }()
+
+    wg.Wait()
+}
+
+func printGreeting(ctx context.Context) error {
+    greeting, err := genGreeting(ctx)
+    if err != nil {
+        return err
+    }
+    fmt.Printf("%s world!\n", greeting)
+    return nil
+}
+
+func printFarewell(ctx context.Context) error {
+    farewell, err := genFarewell(ctx)
+    if err != nil {
+        return err
+    }
+    fmt.Printf("%s world!\n", farewell)
+    return nil
+
+}
+
+func genGreeting(ctx context.Context) (string, error) {
+    ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+    defer cancel()
+
+    switch locale, err := locale(ctx); {
+    case err != nil:
+        return "", err
+    case locale == "EN/US":
+        return "hello", nil
+    }
+    return "", fmt.Errorf("unsupported locale")
+}
+
+func genFarewell(ctx context.Context) (string, error) {
+    switch locale, err := locale(ctx); {
+    case err != nil:
+        return "", err
+    case locale == "EN/US":
+        return "goodbye", nil
+    }
+    return "", fmt.Errorf("unsupported locale")
+}
+
+func locale(ctx context.Context) (string, error) {
+    if deadline, ok := ctx.Deadline(); ok {
+        if deadline.Sub(time.Now().Add(1*time.Minute)) <= 0 {
+            return "", context.DeadlineExceeded
+        }
+    }
+
+    select {
+    case <-ctx.Done():
+        return "", ctx.Err()
+    case <-time.After(1 * time.Minute):
+    }
+    return "EN/US", nil
+}
+```
 
 ### References:
 
