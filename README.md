@@ -27,6 +27,8 @@ This guide is built on top of the some examples of the book `Go Concurrency in G
     - [Bridge channel](#bridge-channel)
     - [Queuing](#queuing)
     - [Context package](#context-package)
+    - [HeartBeats](#heartbeats)
+    - [Replicated Requests](#replicated-requests)
 - [References](#references)
 
 
@@ -1207,6 +1209,7 @@ func printGreeting(ctx context.Context) error {
         return err
     }
     fmt.Printf("%s world!\n", greeting)
+
     return nil
 }
 
@@ -1216,8 +1219,8 @@ func printFarewell(ctx context.Context) error {
         return err
     }
     fmt.Printf("%s world!\n", farewell)
-    return nil
 
+    return nil
 }
 
 func genGreeting(ctx context.Context) (string, error) {
@@ -1230,6 +1233,7 @@ func genGreeting(ctx context.Context) (string, error) {
     case locale == "EN/US":
         return "hello", nil
     }
+
     return "", fmt.Errorf("unsupported locale")
 }
 
@@ -1240,6 +1244,7 @@ func genFarewell(ctx context.Context) (string, error) {
     case locale == "EN/US":
         return "goodbye", nil
     }
+
     return "", fmt.Errorf("unsupported locale")
 }
 
@@ -1255,9 +1260,90 @@ func locale(ctx context.Context) (string, error) {
         return "", ctx.Err()
     case <-time.After(1 * time.Minute):
     }
+
     return "EN/US", nil
 }
 ```
+
+
+### HeartBeats
+
+Heartbeats are a way for concurrent processes to signal life to outside parties. They get their name from human anatomy wherein a heartbeat signifies life to an observer. Heartbeats have been around since before Go, and remain useful within it.
+
+There are two different types of heartbeats:
+- Heartbeats that occur on a time interval.
+- Heartbeats that occur at the beginning of a unit of work
+
+[sample](https://github.com/luk4z7/go-concurrency-guide/heartbeats)
+
+
+### Replicated Requests
+
+You should only replicate requests like this to handlers that have different runtime conditions: different processes, machines, paths to a data store, or access to different data stores. While this can be expensive to set up and maintain, if speed is your goal this is a valuable technique. Also, this naturally provides fault tolerance and scalability.
+
+The only caveat to this approach is that all handlers need to have equal opportunity to fulfill the request. In other words, you won't have a chance to get the fastest time from a handler that can't fulfill the request. As I mentioned, whatever resources the handlers are using to do their work also need to be replicated. A different symptom of the same problem is uniformity. If your handles are very similar, the chances that either one is an outlier are less.
+
+```go
+package main
+
+import (
+    "fmt"
+    "math/rand"
+    "sync"
+    "time"
+)
+
+func main() {
+
+    doWork := func(done <-chan interface{}, id int, wg *sync.WaitGroup, result chan<- int) {
+        started := time.Now()
+        defer wg.Done()
+
+        // Simulate random load
+        simulatedLoadTime := time.Duration(1+rand.Intn(5)) * time.Second
+        select {
+        case <-done:
+        case <-time.After(simulatedLoadTime):
+        }
+
+        select {
+        case <-done:
+        case result <- id:
+        }
+
+        took := time.Since(started)
+        // Display how long handlers would have taken
+        if took < simulatedLoadTime {
+            took = simulatedLoadTime
+
+        }
+
+        fmt.Printf("%v took %v\n", id, took)
+    }
+
+    done := make(chan interface{})
+    result := make(chan int)
+
+    var wg sync.WaitGroup
+    wg.Add(10)
+
+    // Here we start 10 handlers to handle our requests.
+    for i := 0; i < 10; i++ {
+        go doWork(done, i, &wg, result)
+    }
+
+    // This line grabs the first returned value from the group of handlers.
+    firstReturned := <-result
+
+    // Here we cancel all the remaining handlers.
+    // This ensures they don’t continue to do unnecessary work.
+    close(done)
+    wg.Wait()
+
+    fmt.Printf("Received an answer from #%v\n", firstReturned)
+}
+```
+
 
 ### References:
 
