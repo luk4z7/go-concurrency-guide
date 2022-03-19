@@ -620,6 +620,7 @@ close(dataStream) This produces: panic: close of nil channel
 ```
 
 
+
 ## Patterns
 
 ### Confinement
@@ -672,6 +673,7 @@ consumer := func(results <-chan int) {
 results := chanOwner()
 consumer(results)
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/confinement)
 
 
 ### Cancellation
@@ -716,6 +718,7 @@ func main() {
     fmt.Println("Done.")
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/cancellation)
 
 
 ### OR Channel
@@ -786,6 +789,7 @@ func main() {
     fmt.Printf("done after %v", time.Since(start))
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/orchannel)
 
 
 ### Error Handling
@@ -839,6 +843,7 @@ func main() {
     }
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/errorhandler)
 
 
 ### Pipelines
@@ -869,6 +874,7 @@ for _, v := range add(multiply(ints, 2), 1) {
     fmt.Println(v)
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/pipelines)
 
 
 ### Fan-in and Fan-out
@@ -927,6 +933,7 @@ func main() {
     }
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/fanoutfanin)
 
 
 ### Or done channel
@@ -982,6 +989,7 @@ for val := range orDone(done, myChan) {
     // Do something with val
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/ordonechannel)
 
 
 ### Tee channel
@@ -1014,6 +1022,7 @@ tee := func(done <-chan interface{}, in <-chan interface{}) (_, _ <-chan interfa
     return out1, out2
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/teechannel)
 
 
 ### Bridge channel
@@ -1072,6 +1081,7 @@ for v := range bridge(done, genVals()) {
     fmt.Printf("%v ", v)
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/bridgechannel)
 
 
 ### Queuing
@@ -1119,6 +1129,7 @@ func main() {
     fmt.Println("Finished")
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/queuing)
 
 
 ### Context package
@@ -1264,6 +1275,7 @@ func locale(ctx context.Context) (string, error) {
     return "EN/US", nil
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/contextpackage)
 
 
 ### HeartBeats
@@ -1274,7 +1286,7 @@ There are two different types of heartbeats:
 - Heartbeats that occur on a time interval.
 - Heartbeats that occur at the beginning of a unit of work
 
-[sample](https://github.com/luk4z7/go-concurrency-guide/heartbeats)
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/heartbeats)
 
 
 ### Replicated Requests
@@ -1343,6 +1355,7 @@ func main() {
     fmt.Printf("Received an answer from #%v\n", firstReturned)
 }
 ```
+[sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/replicatedrequests)
 
 
 ### References:
