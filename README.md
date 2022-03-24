@@ -522,7 +522,7 @@ func main() {
 
 ## Channels
 
-Channels are one of the synchronization primitives in Go derived from Hoare’s CSP. While they can be used to synchronize access of the memory, they are best used to communicate information between goroutines, default value for channel: nil.
+Channels are one of the synchronization primitives in Go derived from Hoare’s CSP. While they can be used to synchronize access of the memory, they are best used to communicate information between goroutines, default value for channel: `nil`.
 
 To declare a channel to read and send
 ```go
@@ -577,8 +577,11 @@ for integer := range intStream {
 }
 ```
 
-buffered channel
-both, read and write of a channel full or empty it will block, on the buffered channel
+**unbuffered channel**<br/>
+A send operation on an unbuffered channel blocks the sending goroutine, until another goroutine performs a corresponding receive on the same channel; at that point, the value is passed, and both goroutines can continue. On the other hand, if a receive operation is attempted beforehand, the receiving goroutine is blocked until another goroutine performs a send on the same channel. Communication over an unbuffered channel makes the sending and receiving goroutines synchronize. Because of this, unbuffered channels are sometimes called synchronous channels. When a value is sent over an unbuffered channel, the reception of the value takes place before the sending goroutine wakes up again. In discussions of concurrency, when we say that x occurs before y, we do not simply mean that x occurs before y in time; we mean that this is guaranteed and that all your previous effects like updates to variables will complete and you can count on them. When x does not occur before y or after y, we say that x is concurrent with y. This is not to say that x and y are necessarily simultaneous; it just means that we can't assume anything about your order
+
+**buffered channel**<br/>
+both, read and write of a channel full or empty it will block, on the buffered channel 
 
 ```go
 var dataStream chan interface{}
@@ -589,16 +592,20 @@ both, read and send a channel empty cause deadlock
 
 ```go
 var dataStream chan interface{}
-<-dataStream This panics with: fatal error: all goroutines are asleep - deadlock!
+<-dataStream // This panics with: fatal error: all goroutines are asleep - deadlock!
+```
+```
+   goroutine 1 [chan receive (nil chan)]:
+   main.main()
+       /tmp/babel-23079IVB/go-src-23079O4q.go:9 +0x3f
+   exit status 2
+```
 
-  goroutine 1 [chan receive (nil chan)]:
-  main.main()
-      /tmp/babel-23079IVB/go-src-23079O4q.go:9 +0x3f
-  exit status 2
-
+```go
 var dataStream chan interface{}
-dataStream <- struct{}{} This produces: fatal error: all goroutines are asleep - deadlock!
-
+dataStream <- struct{}{} // This produces: fatal error: all goroutines are asleep - deadlock!
+```
+```
   goroutine 1 [chan send (nil chan)]:
   main.main()
       /tmp/babel-23079IVB/go-src-23079dnD.go:9 +0x77
@@ -609,8 +616,9 @@ and a close channel cause a panic
 
 ```go
 var dataStream chan interface{}
-close(dataStream) This produces: panic: close of nil channel
-
+close(dataStream) // This produces: panic: close of nil channel
+```
+```
   goroutine 1 [running]:
   panic(0x45b0c0, 0xc42000a160)
       /usr/local/lib/go/src/runtime/panic.go:500 +0x1a1
@@ -618,6 +626,205 @@ close(dataStream) This produces: panic: close of nil channel
       /tmp/babel-23079IVB/go-src-230794uu.go:9 +0x2a
   exit status 2 Yipes! This is probably
 ```
+
+Table with result of channel operations
+
+Operation | Channel State      | Result
+----------|--------------------|-------------
+Read      | nil                | Block
+_         | Open and Not Empty | Value
+_         | Open and Empty     | Block
+_         | Close              | default value, false
+_         | Write Only         | Compilation Error
+Write     | nil                | Block
+_         | Open and Full      | Block
+_         | Open and Not Full  | Write Value
+_         | Closed             | panic
+_         | Receive Only       | Compilation Error
+Close     | nil                | panic 
+_         | Open and Not Empty | Closes Channel; reads succeed until channel is drained, then reads produce default value
+_         | Open and Empty     | Closes Channel; reads produces default value
+_         | Closed             | panic
+
+
+TIP: Cannot close a receive-only channel
+
+Let's start with channel owners. The goroutine that has a channel must:
+
+1 - Instantiate the channel.  
+2 - Perform writes, or pass ownership to another goroutine.  
+3 - Close the channel.  
+4 - Ecapsulate the previous three things in this list and expose them via a reader channel.
+
+When assigning channel owners responsibilities, a few things happen:
+
+1 - Because we’re the one initializing the channel, we remove the risk of deadlocking by writing to a nil channel.  
+2 - Because we’re the one initializing the channel, we remove the risk of panicing by closing a nil channel.  
+3 - Because we’re the one who decides when the channel gets closed, we remove the risk of panicing by writing to a closed channel.  
+4 - Because we’re the one who decides when the channel gets closed, we remove the risk of panicing by closing a channel more than once.  
+5 - We wield the type checker at compile time to prevent improper writes to our channel.
+
+```go
+chanOwner := func() <-chan int {
+    resultStream := make(chan int, 5) 
+    go func() { 
+        defer close(resultStream) 
+        for i := 0; i <= 5; i++ {
+            resultStream <- i
+        }
+    }()
+    return resultStream 
+}
+
+resultStream := chanOwner()
+for result := range resultStream { 
+    fmt.Printf("Received: %d\n", result)
+}
+
+fmt.Println("Done receiving!")
+```
+
+The creation of channel owners explicitly tends to have greater control of when that channel should be closed and its operation, avoiding the delegation of these functions to other methods/functions of the system, avoiding reading closed channels or sending data to the same already finalized
+
+
+**select**
+
+the select cases do not work the same as the switch, which is sequential, and the execution will not automatically fall if none of the criteria is met.
+
+```go
+var c1, c2 <-chan interface{}
+var c3 chan<- interface{}
+select {
+case <- c1:
+    // Do something
+case <- c2:
+    // Do something
+case c3<- struct{}{}:
+
+}
+```
+
+Instead, all channel reads and writes are considered simultaneously to see if any of them are ready: channels filled or closed in the case of reads and channels not at capacity in the case of writes. If none of the channels are ready, the entire select command is blocked. Then, when one of the channels is ready, the operation will proceed and its corresponding instructions will be executed.
+
+```go
+start := time.Now()
+c := make(chan interface{})
+go func() {
+    time.Sleep(5*time.Second)
+    close(c) 
+}()
+
+fmt.Println("Blocking on read...")
+select {
+case <-c: 
+    fmt.Printf("Unblocked %v later.\n", time.Since(start))
+}
+```
+
+questions when work with select and channels
+
+1 - What happens when multiple channels have something to read?  
+
+```go
+c1 := make(chan interface{}); close(c1)
+c2 := make(chan interface{}); close(c2)
+
+var c1Count, c2Count int
+for i := 1000; i >= 0; i-- {
+    select {
+    case <-c1:
+        c1Count++
+    case <-c2:
+        c2Count++
+    }
+}
+
+fmt.Printf("c1Count: %d\nc2Count: %d\n", c1Count, c2Count)
+```
+
+This produces:<br/>
+c1Count: 505<br/>
+c2Count: 496<br/>
+
+half is read by c1 half by c2 by the Go runtime, cannot exactly predict how much each will be read, and will not be exactly the same for both, it can happen but cannot be predicted, the runtime knows nothing about the intent to own 2 channels receiving information or closed as in our example, then the runtime includes a pseudo-random
+Go runtime will perform a pseudo-random uniform selection over the select case statement set. This just means that from your set of cases, each one has the same chance of being selected as all the others. 
+
+A good way to do this is to introduce a random variable into your equation - in this case, which channel to select from. By weighing the chance that each channel is used equally, all Go programs that use the select statement will perform well in the average case.
+
+
+2 - What if there are never any channels that become ready?  
+
+```go
+var c <-chan int
+select {
+case <-c: 
+case <-time.After(1 * time.Second):
+    fmt.Println("Timed out.")
+}
+
+```
+
+To solve the problem of the channels being blocked, the default can be used to perform some other operation, or in the first example
+a time out with time.After
+
+3 - What if we want to do something but no channels are currently ready? use `default`
+
+```go
+start := time.Now()
+var c1, c2 <-chan int
+select {
+case <-c1:
+case <-c2:
+default:
+    fmt.Printf("In default after %v\n\n", time.Since(start))
+}
+```
+
+exit a select block 
+
+```go
+done := make(chan interface{})
+go func() {
+    time.Sleep(5*time.Second)
+    close(done)
+}()
+
+workCounter := 0
+loop:
+for {
+    select {
+    case <-done:
+        break loop
+    default:
+    }
+
+    // Simulate work
+    workCounter++
+    time.Sleep(1*time.Second)
+}
+
+fmt.Printf("Achieved %v cycles of work before signalled to stop.\n", workCounter)
+```
+
+block forever 
+
+```go
+select {}
+```
+
+GOMAXPROCS<br/>
+Prior to Go 1.5, GOMAXPROCS was always set to one, and usually you’d find this snippet in most Go programs:
+
+```go
+runtime.GOMAXPROCS(runtime.NumCPU())
+```
+
+This function controls the number of operating system threads that will host so-called “Work Queues.”
+https://pkg.go.dev/runtime#GOMAXPROCS
+
+
+"Do not communicate by sharing memory;
+instead, share memory by communicating. (copies)"
 
 
 
@@ -648,7 +855,7 @@ for num := range handleData {
 }
 ```
 
-Lexical
+Lexical confinement involves using lexical scope to expose only the correct data and concurrency primitives for multiple concurrent processes to use.
 
 ```go
 chanOwner := func() <-chan int {
