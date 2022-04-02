@@ -304,6 +304,8 @@ func main() {
     fmt.Printf("%d calculators were created.", numCalcsCreated)
 }
 ```
+[sync samples](https://github.com/luk4z7/go-concurrency-guide/tree/main/sync)
+
 
 
 ## Deadlocks, Livelocks, and Starvation
