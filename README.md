@@ -652,22 +652,20 @@ _         | Open and Empty     | Closes Channel; reads produces default value
 _         | Closed             | panic
 
 
-TIP: Cannot close a receive-only channel
+`TIP: Cannot close a receive-only channel`
 
-Let's start with channel owners. The goroutine that has a channel must:
+* Let's start with channel owners. The goroutine that has a channel must:
+    * 1 - Instantiate the channel.  
+    * 2 - Perform writes, or pass ownership to another goroutine.  
+    * 3 - Close the channel.  
+    * 4 - Ecapsulate the previous three things in this list and expose them via a reader channel.
 
-1 - Instantiate the channel.  
-2 - Perform writes, or pass ownership to another goroutine.  
-3 - Close the channel.  
-4 - Ecapsulate the previous three things in this list and expose them via a reader channel.
-
-When assigning channel owners responsibilities, a few things happen:
-
-1 - Because we’re the one initializing the channel, we remove the risk of deadlocking by writing to a nil channel.  
-2 - Because we’re the one initializing the channel, we remove the risk of panicing by closing a nil channel.  
-3 - Because we’re the one who decides when the channel gets closed, we remove the risk of panicing by writing to a closed channel.  
-4 - Because we’re the one who decides when the channel gets closed, we remove the risk of panicing by closing a channel more than once.  
-5 - We wield the type checker at compile time to prevent improper writes to our channel.
+* When assigning channel owners responsibilities, a few things happen:
+    * 1 - Because we’re the one initializing the channel, we remove the risk of deadlocking by writing to a nil channel.  
+    * 2 - Because we’re the one initializing the channel, we remove the risk of panicing by closing a nil channel.  
+    * 3 - Because we’re the one who decides when the channel gets closed, we remove the risk of panicing by writing to a closed channel.  
+    * 4 - Because we’re the one who decides when the channel gets closed, we remove the risk of panicing by closing a channel more than once.  
+    * 5 - We wield the type checker at compile time to prevent improper writes to our channel.
 
 ```go
 chanOwner := func() <-chan int {
@@ -817,7 +815,7 @@ block forever
 select {}
 ```
 
-GOMAXPROCS<br/>
+**GOMAXPROCS**<br/>
 Prior to Go 1.5, GOMAXPROCS was always set to one, and usually you’d find this snippet in most Go programs:
 
 ```go
@@ -825,11 +823,19 @@ runtime.GOMAXPROCS(runtime.NumCPU())
 ```
 
 This function controls the number of operating system threads that will host so-called “Work Queues.”
-https://pkg.go.dev/runtime#GOMAXPROCS
+[documentation](https://pkg.go.dev/runtime#GOMAXPROCS)
 
 
-"Do not communicate by sharing memory;
-instead, share memory by communicating. (copies)"
+[Use a sync.Mutex or a channel?](https://github.com/golang/go/wiki/MutexOrChannel)
+
+As a general guide, though:
+
+Channel | Mutex
+--------|-------
+passing ownership of data, <br/>distributing units of work, <br/>communicating async results | caches, <br/>state
+
+
+_"Do not communicate by sharing memory; instead, share memory by communicating. (copies)"_
 
 
 
