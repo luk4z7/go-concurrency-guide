@@ -149,6 +149,8 @@ for i := 0; i < 20; i++ {
 
 It would be better if there were some kind of way for a goroutine to efficiently sleep until it was signaled to wake and check its condition. This is exactly what the Cond type does for us.
 
+The Cond and the Broadcast is the method that provides for notifying goroutines blocked on Wait call that the condition has been triggered.
+
 ```go
 type Button struct {
     Clicked *sync.Cond
@@ -199,6 +201,7 @@ func main() {
     clickRegistered.Wait()
 }
 ```
+[cond samples](https://github.com/luk4z7/go-concurrency-guide/blob/main/sync/cond/main.go)
 
 
 ### Once
