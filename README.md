@@ -29,6 +29,7 @@ This guide is built on top of the some examples of the book `Go Concurrency in G
     - [Context package](#context-package)
     - [HeartBeats](#heartbeats)
     - [Replicated Requests](#replicated-requests)
+- [Runtime](#runtime)
 - [References](#references)
 
 
@@ -1574,6 +1575,23 @@ func main() {
 }
 ```
 [sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/replicatedrequests)
+
+
+
+## Runtime
+
+Go will handle multiplexing goroutines onto OS threads for you.
+
+The algorithm it uses to do this is known as a work `stealing strategy`.
+
+fair scheduling. In an effort to ensure all processors were equally utilized, we could evenly distribute the load between all available processors. Imagine there are n processors and x tasks to perform. In the fair scheduling strategy, each processor would get x/n tasks:
+
+Go models concurrency using a fork-join model.
+
+As a refresher, remember that Go follows a fork-join model for concurrency. Forks are when goroutines are started, and join points are when two or more goroutines are synchronized through channels or types in the sync package. The work stealing algorithm follows a few basic rules. Given a thread of execution:
+
+At a fork point, add tasks to the tail of the deque associated with the thread.
+
 
 
 ### References:
