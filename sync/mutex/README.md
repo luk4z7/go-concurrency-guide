@@ -23,23 +23,23 @@ func main() {
 
 Another view from other languages
 
-Few languages tell us this at compile time like `rust` which prevents us from accessing the same variable on multiple threads, this code causes an error because at compile time a data race is detected, it blocked us from writing to the same variable simultaneously, [mutex code](https://github.com/luk4z7/go-concurrency-guide/blob/main/sync/rust/mutex/src/main.rs)
+Few languages tell us this at compile time like `rust` which prevents us from accessing the same variable on multiple threads, this code causes an error because at compile time a data race is detected, it blocked us from writing to the same variable simultaneously, [mutex code](https://github.com/luk4z7/go-concurrency-guide/blob/main/sync/mutex/rust/mutex/src/main.rs)
 
-This example return the error, [complete code of right implementation](https://github.com/luk4z7/go-concurrency-guide/blob/main/sync/rust/dataracefree/src/main.rs)
+This example return the error, [complete code](https://github.com/luk4z7/go-concurrency-guide/blob/main/sync/mutex/rust/dataracefree/src/main.rs)
 ```rust
 // error -> closure may outlive the current function, but it borrows `vec`, which is owned by the current function
 fn main() {
     let mut vec: Vec<i64> = Vec::new();
 
     thread::spawn(|| {
-        addVec(&mut vec);
+        add_vec(&mut vec);
     });
 
     vec.push(34)
 }
 
-fn add_to_vec(vec: &mut Vec<i64>) {
-    vec.addVec(42);
+fn add_vec(vec: &mut Vec<i64>) {
+    vec.push(42);
 }
 ```
 
@@ -66,4 +66,4 @@ int read_the_counter(int *value) {
 }
 ```
 
-[complete c code](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/replicatedrequests)
+[complete c code](https://github.com/luk4z7/go-concurrency-guide/tree/main/sync/mutex/c)
