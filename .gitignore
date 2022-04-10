@@ -1,0 +1,4 @@
+*.o
+mutex.out
+target/
+.vscode
