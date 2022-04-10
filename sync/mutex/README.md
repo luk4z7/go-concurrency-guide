@@ -1,6 +1,6 @@
 ## Mutex
 
-[Home](https://github.com/luk4z7/go-concurrency-guide)
+[Home](https://github.com/luk4z7/go-concurrency-guide)<br/>
 [Sync](https://github.com/luk4z7/go-concurrency-guide/tree/main/sync)
 
 Here we can take some of the many examples of how to make `memory access synchonization` safely to avoid data race errors and race conditions.
