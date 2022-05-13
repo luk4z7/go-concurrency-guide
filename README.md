@@ -4,7 +4,7 @@
 This guide is built on top of the some examples of the book `Go Concurrency in Go` and `Go Programming Language`
 
 - [Race Condition and Data Race](#race-condition-and-data-race)
-- [Memory Access Synchonization](#memory-access-synchonization)
+- [Memory Access Synchronization](#memory-access-synchronization)
     -  [Mutex](#mutex)
     -  [WaitGroup](#waitgroup)
     -  [RWMutex](#rwmutex)
@@ -53,7 +53,7 @@ func main() {
 ```
 
 
-## Memory Access Synchonization
+## Memory Access Synchronization
 
 The sync package contains the concurrency primitives that are most useful for low-level memory access synchronization.
 Critical section is the place in your code that has access to a shared memory
@@ -131,7 +131,7 @@ tw := tabwriter.NewWriter(os.Stdout, 0, 1, 2, ' ', 0)
 defer tw.Flush()
 
 var m sync.RWMutex
-fmt.Fprintf(tw, "Readers\tRWMutext\tMutex\n")
+fmt.Fprintf(tw, "Readers\tRWMutex\tMutex\n")
 
 for i := 0; i < 20; i++ {
     count := int(math.Pow(2, float64(i)))
@@ -659,7 +659,7 @@ _         | Closed             | panic
     * 1 - Instantiate the channel.  
     * 2 - Perform writes, or pass ownership to another goroutine.  
     * 3 - Close the channel.  
-    * 4 - Ecapsulate the previous three things in this list and expose them via a reader channel.
+    * 4 - Encapsulate the previous three things in this list and expose them via a reader channel.
 
 * When assigning channel owners responsibilities, a few things happen:
     * 1 - Because we’re the one initializing the channel, we remove the risk of deadlocking by writing to a nil channel.  
@@ -1389,7 +1389,7 @@ func HandleResponse(ctx context.Context) {
 }
 ```
 
-another exame with `Timeout`, cancellation in a function has three aspects: 
+another example with `Timeout`, cancellation in a function has three aspects:
 
 - A goroutine’s parent may want to cancel it. 
 - A goroutine may want to cancel its children.  
@@ -1635,7 +1635,7 @@ Go schedule put her  goroutines on kernel threads which run on the CPU
 ### References:
 
 
-[Go Programming Language](http://www.gopl.io)
+[Go Programming Language](https://www.gopl.io)
 
 
 [Go Concurrency in Go](https://katherine.cox-buday.com/concurrency-in-go)
