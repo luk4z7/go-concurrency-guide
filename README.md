@@ -35,9 +35,9 @@ This guide is built on top of the some examples of the book `Go Concurrency in G
 
 ## Race Condition and Data Race
 
-Race condition occur when two or more operations must execute in the correct order, but the program has not been written so that this order is guaranteed  to maintained.
+Race condition occur when two or more operations must execute in the correct order, but the program has not been written so that this order is guaranteed  to be maintained.
 
-Data race is when one concurrent operation attempts to read a variable while at some undetermined time another concurrent operation is attempting to write to the same variable, the main func is the main goroutine.
+Data race is when one concurrent operation attempts to read a variable while at some undetermined time another concurrent operation is attempting to write to the same variable. The main func is the main goroutine.
 
 ```go
 func main() {
