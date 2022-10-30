@@ -824,20 +824,16 @@ select {}
 ```
 
 **GOMAXPROCS**<br/>
-Prior to Go 1.5, GOMAXPROCS was always set to one, and usually you’d find this snippet in most Go programs:
 
-在Go 1.5之前，GOMAXPROCS总是被设置为1，通常你会在大多数Go程序中发现这个片段。
+在Go 1.5之前，GOMAXPROCS总是被设置为1，通常你会在大多数Go程序中发现这个片段：
 
 ```go
 runtime.GOMAXPROCS(runtime.NumCPU())
 ```
 
-This function controls the number of operating system threads that will host so-called “Work Queues.”
-
 该功能控制操作系统线程的数量，这些线程将承载所谓的 "工作队列"。
 
 [documentation](https://pkg.go.dev/runtime#GOMAXPROCS)
-
 
 [Use a sync.Mutex or a channel?](https://github.com/golang/go/wiki/MutexOrChannel)
 
@@ -854,14 +850,16 @@ _"不要通过共享内存来交流；相反，通过交流来共享内存。(�
 
 
 
-## Patterns
+## 模式
 
-### Confinement
+### Confinement限制
 
-Confinement is the simple yet powerful idea of ensuring information is only ever available from one concurrent process.
-There are two kinds of confinement possible: ad hoc and lexical.
+限制是一个简单而强大的想法，即确保信息只能从一个并发进程中获得。
+有两种可能的限制：临时性的和词汇性的。
 
-Ad hoc confinement is when you achieve confinement through a convention
+
+
+临时限制是指你通过一个公约实现限制。
 
 ```go
 data := make([]int, 4)
@@ -881,7 +879,7 @@ for num := range handleData {
 }
 ```
 
-Lexical confinement involves using lexical scope to expose only the correct data and concurrency primitives for multiple concurrent processes to use.
+词法限制涉及到使用词法范围，只暴露正确的数据和并发原语，供多个并发进程使用。
 
 ```go
 chanOwner := func() <-chan int {
@@ -909,7 +907,7 @@ consumer(results)
 [sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/confinement)
 
 
-### Cancellation
+### 取消
 
 ```go
 package main
@@ -956,7 +954,7 @@ func main() {
 
 ### OR Channel
 
-At times you may find yourself wanting to combine one or more done channels into a single done channel that closes if any of its component channels close.
+有时，你可能会发现自己想把一个或多个已完成的通道合并成一个单一的已完成的通道，如果它的任何一个组成通道关闭，这个通道就会关闭。
 
 ```go
 package main
@@ -1025,7 +1023,7 @@ func main() {
 [sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/orchannel)
 
 
-### Error Handling
+### 错误处理
 
 ```go
 package main
@@ -1081,7 +1079,7 @@ func main() {
 
 ### Pipelines
 
-A pipeline is just another tool you can use to form an abstraction in your system.
+管道只是另一种工具，你可以用来在你的系统中形成一个抽象的概念。
 
 ```go
 multiply := func(values []int, multiplier int) []int {
@@ -1110,9 +1108,9 @@ for _, v := range add(multiply(ints, 2), 1) {
 [sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/pipelines)
 
 
-### Fan-in and Fan-out
+### 扇入和扇出
 
-Fan-out is a term to describe the process of starting multiple goroutines to handle pipeline input, and fan-in is a term to describe the process of combining multiple outputs into one channel.
+扇出是一个术语，用来描述启动多个goroutines来处理channel输入的过程，而扇入是一个术语，用来描述将多个输出合并成一个channel的过程。
 
 ```go
 package main
@@ -1171,7 +1169,7 @@ func main() {
 
 ### Or done channel
 
-Or done is a way to encapsulate verbosity that can be achieved through for/select breaks to check when a channel has ended, and also avoiding goroutine leakage, the code below could be replaced by a closure that encapsulates that verbosity
+或者做是一种封装口令的方法，可以通过for/select断点续传来检查channel何时结束，也可以避免goroutine泄露，下面的代码可以用一个封装口令的闭包来代替。
 
 ```go
 for val := range myChan {
@@ -1192,7 +1190,7 @@ for {
 }
 ```
 
-can be created an isolation, a function/method, closure, creating a single goroutine
+可以创建一个隔离，一个函数/方法，封闭，创建一个单一的goroutine
 
 ```go
 orDone := func(done, c <-chan interface{}) <-chan interface{} {
@@ -1227,7 +1225,7 @@ for val := range orDone(done, myChan) {
 
 ### Tee channel
 
-Pass the it a channel to read from, and it will return two separate channels that will get the same value:
+传递给它一个要读取的channel，它将返回两个独立的channel，得到相同的值：
 
 ```go
 tee := func(done <-chan interface{}, in <-chan interface{}) (_, _ <-chan interface{}) {
@@ -1260,7 +1258,7 @@ tee := func(done <-chan interface{}, in <-chan interface{}) (_, _ <-chan interfa
 
 ### Bridge channel
 
-With this patterns is possible to create a function that destruct a channel of channels into a single channel
+有了这个模式，就可以创建一个函数，将一个通道分解为一个单一的channel。
 
 ```go
 bridge := func(done <-chan interface{}, chanStream <-chan <-chan interface{}) <-chan interface{} {
@@ -1319,8 +1317,7 @@ for v := range bridge(done, genVals()) {
 
 ### Queuing
 
-buffered channel is a type of queue, Adding queuing prematurely can hide synchronization issues such as deadlocks, we can use the queue to make
-a limit to processing, in this process when the `limit <- struct{}{}` is full the queue is wait to be released `<-limit`, if we remove them the 50 goroutines are created at the same time
+缓冲通道是队列的一种，过早地加入队列可以隐藏同步问题，比如死锁，我们可以用队列来做处理的限制，在这个过程中，当`limit <- struct{}{}`满的时候，队列就会等待释放`<-limit`，如果我们删除它们，就会同时创建50个goroutine
 
 ```go
 package main
@@ -1365,15 +1362,16 @@ func main() {
 [sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/queuing)
 
 
-### Context package
+### 上下文包
 
-in concurrent programs it’s often necessary to preempt operations because of timeouts, cancellation, or failure of another portion of the system. We’ve looked at the idiom of creating a done channel, which flows through your program and cancels all blocking concurrent operations. This works well, but it’s also somewhat limited.
+在并发程序中，由于超时、取消或系统中另一部分的失败，常常需要抢占操作。我们已经研究过创建一个 "完成"channel的习性，它流经你的程序并取消所有阻塞的并发操作。这很有效，但也有一定的局限性。
 
-It would be useful if we could communicate extra information alongside the simple notification to cancel: why the cancellation was occuring, or whether or not our function has a deadline by which it needs to complete.
+如果我们能在简单的取消通知的同时传递额外的信息，那将是非常有用的：为什么会发生取消，或者我们的函数是否有一个需要完成的最后期限。
 
-see below an example to pass value into context, the context package serves two primary purposes: 
-- To provide an API for canceling branches of your call-graph.  
-- To provide a data-bag for transporting request-scoped data through your call-graph
+请看下面一个例子，将值传递到上下文中，上下文包有两个主要目的。
+
+- 为取消你的调用图的分支提供一个API。 
+- 提供一个数据包，用于通过你的调用图传输请求范围内的数据。
 
 
 ```go
@@ -1403,13 +1401,13 @@ func HandleResponse(ctx context.Context) {
 }
 ```
 
-another example with `Timeout`, cancellation in a function has three aspects:
+另一个例子是 `Timeout`，一个函数中的取消有三个方面。
 
-- A goroutine’s parent may want to cancel it. 
-- A goroutine may want to cancel its children.  
-- Any blocking operations within a goroutine need to be preemptable so that it may be canceled.
+- 一个goroutine的父程序可能想取消它。
+- 一个goroutine可能想取消它的子程序。 
+- 在一个goroutine中的任何阻塞操作都需要是可抢占的，这样它就可以被取消了。
 
-The context package helps manage all three of these.
+上下文包可以帮助管理所有这三种情况。
 
 ```go
 package main
@@ -1511,22 +1509,23 @@ func locale(ctx context.Context) (string, error) {
 [sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/contextpackage)
 
 
-### HeartBeats
+### 心跳
 
-Heartbeats are a way for concurrent processes to signal life to outside parties. They get their name from human anatomy wherein a heartbeat signifies life to an observer. Heartbeats have been around since before Go, and remain useful within it.
+心脏跳动是并发进程向外界发出生命信号的一种方式。它们的名字来自于人体解剖学，在那里，心跳对观察者来说意味着生命。心跳在Go之前就已经存在了，并且在Go中仍然有用。
 
-There are two different types of heartbeats:
-- Heartbeats that occur on a time interval.
-- Heartbeats that occur at the beginning of a unit of work
+有两种不同类型的心跳。
+
+- 在一个时间间隔内发生的心跳。
+- 在一个工作单元开始时发生的心跳
 
 [sample](https://github.com/luk4z7/go-concurrency-guide/tree/main/patterns/heartbeats)
 
 
-### Replicated Requests
+### 复制的请求
 
-You should only replicate requests like this to handlers that have different runtime conditions: different processes, machines, paths to a data store, or access to different data stores. While this can be expensive to set up and maintain, if speed is your goal this is a valuable technique. Also, this naturally provides fault tolerance and scalability.
+你应该只把这样的请求复制到具有不同运行时间条件的处理程序：不同的进程、机器、通往数据存储的路径，或对不同数据存储的访问。虽然这可能是昂贵的设置和维护，但如果速度是你的目标，这是一个宝贵的技术。另外，这自然提供了容错和可扩展性。
 
-The only caveat to this approach is that all handlers need to have equal opportunity to fulfill the request. In other words, you won't have a chance to get the fastest time from a handler that can't fulfill the request. As I mentioned, whatever resources the handlers are using to do their work also need to be replicated. A different symptom of the same problem is uniformity. If your handles are very similar, the chances that either one is an outlier are less.
+这种方法唯一需要注意的是，所有的处理程序都需要有平等的机会来满足请求。换句话说，你不会有机会从一个不能满足请求的处理程序那里得到最快的时间。正如我所提到的，无论处理程序使用什么资源来做他们的工作，也需要被复制。同一问题的另一个症状是统一性。如果你的处理程序非常相似，那么任何一个处理程序是异常点的机会就会减少。
 
 ```go
 package main
@@ -1592,57 +1591,56 @@ func main() {
 
 
 
-## Scheduler Runtime
+## 调度器运行时间
 
-Go will handle multiplexing goroutines onto OS threads for you.
+Go将为你处理多路复用goroutines到操作系统线程上。
 
-The algorithm it uses to do this is known as a work `stealing strategy`.
+它用来做这件事的算法被称为工作 `窃取策略`。
 
-fair scheduling. In an effort to ensure all processors were equally utilized, we could evenly distribute the load between all available processors. Imagine there are n processors and x tasks to perform. In the fair scheduling strategy, each processor would get x/n tasks:
+公平调度。为了确保所有的处理器都得到平等的利用，我们可以在所有可用的处理器之间均匀地分配负载。想象一下，有n个处理器和x个任务要执行。在公平调度策略中，每个处理器会得到x/n个任务。
 
-Go models concurrency using a fork-join model.
+Go使用分叉连接模型对并发进行建模。
 
-As a refresher, remember that Go follows a fork-join model for concurrency. Forks are when goroutines are started, and join points are when two or more goroutines are synchronized through channels or types in the sync package. The work stealing algorithm follows a few basic rules. Given a thread of execution:
+作为复习，请记住Go是采用叉接模型进行并发的。叉点是goroutines启动的时候，而连接点是两个或多个goroutines通过channel或同步包中的类型进行同步的时候。窃取算法遵循一些基本规则。给定一个执行的线程：
 
-At a fork point, add tasks to the tail of the deque associated with the thread.
-
-
-Go scheduler’s job is to distribute runnable goroutines over multiple worker OS threads that runs on one or more processors. In multi-threaded computation, two paradigms have emerged in scheduling: work sharing and work stealing.
-
-- Work-sharing: When a processor generates new threads, it attempts to migrate some of them to the other processors with the hopes of them being utilized by the idle/underutilized processors.
-- Work-stealing: An underutilized processor actively looks for other processor’s threads and “steal” some.
-
-The migration of threads occurs less frequently with work stealing than with work sharing. When all processors have work to run, no threads are being migrated. And as soon as there is an idle processor, migration is considered.
-
-Go has a work-stealing scheduler since 1.1, contributed by Dmitry Vyukov. This article will go in depth explaining what work-stealing schedulers are and how Go implements one.
+在分叉点，将任务添加到与该线程相关的deque的尾部。
 
 
-**Scheduling basics**
+Go调度器的工作是将可运行的goroutines分配到多个运行在一个或多个处理器上的工人操作系统线程上。在多线程计算中，调度出现了两种范式：工作共享和工作偷窃。
 
-Go has an M:N scheduler that can also utilize multiple processors. At any time, M goroutines need to be scheduled on N OS threads that runs on at most GOMAXPROCS numbers of processors. Go scheduler uses the following terminology for goroutines, threads and processors:
+- 工作共享。当一个处理器产生新的线程时，它试图将其中一些线程迁移到其他处理器上，希望它们能被闲置/未被充分利用的处理器所利用。
+- 窃取工作。一个未被充分利用的处理器主动寻找其他处理器的线程并 "偷"走一些。
+
+与工作共享相比，线程的迁移在工作偷窃中发生的频率较低。当所有处理器都有工作要运行时，没有线程被迁移。而只要有一个空闲的处理器，就会考虑迁移。
+
+Go从1.1开始就有一个工作窃取的调度器，由Dmitry Vyukov贡献。本文将深入解释什么是工作窃取的调度器，以及Go是如何实现的。
+
+**调度基本知识**
+
+Go有一个M:N调度器，也可以使用多个处理器。在任何时候，需要在最多运行GOMAXPROCS数量的处理器的N个OS线程上调度M个goroutine。Go调度器对goroutine、线程和处理器使用以下术语：
 
 - G: goroutine<br/>
 - M: OS thread (machine)<br/>
 - P: processor<br/>
 
-There is a P-specific local and a global goroutine queue. Each M should be assigned to a P. Ps may have no Ms if they are blocked or in a system call. At any time, there are at most GOMAXPROCS number of P. At any time, only one M can run per P. More Ms can be created by the scheduler if required.
+有一个针对P的本地和一个全局的goroutine队列。每个M应该被分配给一个P。如果P被阻塞或处于系统调用中，则可能没有M。在任何时候，最多只有GOMAXPROCS数量的P。在任何时候，每个P只能运行一个M。如果需要，调度器可以创建更多的Ms。
+
 [runtime doc](https://github.com/golang/go/blob/master/src/runtime/proc.go)
 
+**为什么要有一个调度器?**
 
-**Why have a scheduler?**
+goroutines是用户空间线程
+概念上类似于由操作系统管理的内核线程，但完全由Go运行时管理
 
-goroutines are user-space threads
-conceptually similar to kernel threads managed by the OS, but managed entirely by the Go runtime
+比内核线程更轻巧、更便宜。
 
-lighter-weight  and cheaper than kernel threads.
+* 更小的内存占用。
+  * 初始goroutine栈=2KB；默认线程栈=8KB
+  * 状态跟踪开销
+  * 更快的创建、销毁和上下文切换。
+  * goroutines开关=~几十ns；线程开关=~一个us。
 
-* smaller memory footprint:
-    * initial goroutine stack = 2KB; default thread stack = 8KB
-    * state tracking overhead
-    * faster creation, destruction, context switchesL
-    * goroutines switches = ~tens of ns; thread switches = ~ a us.
-
-Go schedule put her  goroutines on kernel threads which run on the CPU
+把她的程序放在内核线程上，在CPU上运行。
 
 
 
