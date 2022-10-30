@@ -3,34 +3,7 @@
 
 This guide is built on top of the some examples of the book `Go Concurrency in Go` and `Go Programming Language`
 
-- [竞赛条件和数据竞赛](#race-condition-and-data-race)
-- [Memory Access Synchronization](#memory-access-synchronization)
-    -  [Mutex](#mutex)
-    -  [WaitGroup](#waitgroup)
-    -  [RWMutex](#rwmutex)
-    -  [Cond](#cond)
-    -  [Pool](#pool)
-- [Deadlocks, Livelocks and Starvation](#deadlocks-livelocks-and-starvation)
-    -  [Deadlocks](#deadlocks)
-    -  [Livelocks](#livelocks)
-    -  [Starvation](#starvation)
-- [Channels](#channels)
-- [Patterns](#patterns)
-    - [Confinement](#confinement)
-    - [Cancellation](#cancellation)
-    - [OR Channel](#or-channel)
-    - [Error Handling](#error-handling)
-    - [Pipelines](#pipelines)
-    - [Fan-in and Fan-out](#fan-in-and-fan-out)
-    - [Or done channel](#or-done-channel)
-    - [Tee channel](#tee-channel)
-    - [Bridge channel](#bridge-channel)
-    - [Queuing](#queuing)
-    - [Context package](#context-package)
-    - [HeartBeats](#heartbeats)
-    - [Replicated Requests](#replicated-requests)
-- [Scheduler Runtime](#scheduler-runtime)
-- [References](#references)
+[TOC]
 
 
 ## 竞赛条件和数据竞赛
@@ -313,7 +286,7 @@ func main() {
 
 
 
-## 死锁、活锁和饿死
+## 死锁、活锁和饥饿
 
 ### 死锁
 
