@@ -1,8 +1,6 @@
 
 # Go Concurrency Guide
 
-English Version | [中文版本](zh_cn/README.md)
-
 This guide is built on top of the some examples of the book `Go Concurrency in Go` and `Go Programming Language`
 
 - [Race Condition and Data Race](#race-condition-and-data-race)
