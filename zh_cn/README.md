@@ -3,7 +3,7 @@
 
 This guide is built on top of the some examples of the book `Go Concurrency in Go` and `Go Programming Language`
 
-- [Race Condition and Data Race](#race-condition-and-data-race)
+- [竞赛条件和数据竞赛](#race-condition-and-data-race)
 - [Memory Access Synchronization](#memory-access-synchronization)
     -  [Mutex](#mutex)
     -  [WaitGroup](#waitgroup)
@@ -33,11 +33,11 @@ This guide is built on top of the some examples of the book `Go Concurrency in G
 - [References](#references)
 
 
-## Race Condition and Data Race
+## 竞赛条件和数据竞赛
 
-Race condition occur when two or more operations must execute in the correct order, but the program has not been written so that this order is guaranteed  to be maintained.
+当两个或更多的操作必须以正确的顺序执行时，就会出现竞赛条件，但程序的编写没有保证这个顺序得到维持。
 
-Data race is when one concurrent operation attempts to read a variable while at some undetermined time another concurrent operation is attempting to write to the same variable. The main func is the main goroutine.
+数据竞赛是指一个并发的操作试图读取一个变量，而在某个不确定的时间，另一个并发的操作试图写到同一个变量。主函数（main func）是主程序（goroutine）。
 
 ```go
 func main() {
@@ -53,15 +53,16 @@ func main() {
 ```
 
 
-## Memory Access Synchronization
+## 内存访问同步化
 
 The sync package contains the concurrency primitives that are most useful for low-level memory access synchronization.
 Critical section is the place in your code that has access to a shared memory
 
+sync包包含了对低级内存访问同步最有用的并发原语。关键部分是你的代码中可以访问共享内存的地方。
 
 ### Mutex
 
-Mutex stands for “mutual exclusion” and is a way to protect critical sections of your program.
+Mutex是 "相互排斥 "的意思，是一种保护你的程序的关键部分的方法。
 
 ```go
 type Counter struct {
@@ -79,7 +80,7 @@ func (c *Counter) Increment() {
 
 ### WaitGroup
 
-Call to add a group of goroutines
+调用添加一组goroutines的方法
 
 ```go
 var wg sync.WaitGroup
@@ -96,7 +97,7 @@ wg.Wait()
 
 ### RWMutex
 
-More fine-grained memory control, being possible to request read-only lock
+更加细化的内存控制，可以申请只读锁
 
 ```go
 producer := func(wg *sync.WaitGroup, l sync.Locker) { 
@@ -148,9 +149,9 @@ for i := 0; i < 20; i++ {
 
 ### Cond
 
-It would be better if there were some kind of way for a goroutine to efficiently sleep until it was signaled to wake and check its condition. This is exactly what the Cond type does for us.
+如果有某种方法能让一个goroutine有效地睡眠，直到它被信号唤醒并检查其状况，那就更好了。这正是Cond类型为我们所做的。
 
-The Cond and the Broadcast is the method that provides for notifying goroutines blocked on Wait call that the condition has been triggered.
+Cond和Broadcast是提供通知被Wait调用阻塞的goroutine的方法，即条件已经被触发。
 
 ```go
 type Button struct {
@@ -207,7 +208,7 @@ func main() {
 
 ### Once
 
-Ensuring that only one execution will be carried out even among several goroutines
+确保即使在几个goroutine之间也只执行一个程序
 
 ```go
 var count int
@@ -235,7 +236,7 @@ fmt.Printf("Count is %d\n", count)
 
 ### Pool
 
-Manager the pool of connections, a quantity
+管理连接池，一个数量
 
 ```go
 package main
@@ -312,11 +313,11 @@ func main() {
 
 
 
-## Deadlocks, Livelocks, and Starvation
+## 死锁、活锁和饿死
 
-### Deadlocks
+### 死锁
 
-Deadlocks is a program is one in which all concurrent processes are waiting on one another.
+死锁是指一个程序中所有并发进程都在相互等待。
 
 ```go
 package main
@@ -379,9 +380,9 @@ func main() {
 ```
 
 
-### Livelocks
+### 活锁
 
-Livelocks are programs that are actively performing concurrent operations, but these operations do nothing to move the state of the program forward.
+活锁是指正在积极执行并发操作的程序，但这些操作对推进程序的状态毫无作用。
 
 ```go
 package main
@@ -461,9 +462,9 @@ func main() {
 ```
 
 
-### Starvation
+### 饥饿
 
-Starvation is any situation where a concurrent process cannot get all the resources it needs to perform work.
+饥饿是指一个并发进程无法获得执行工作所需的所有资源的任何情况。
 
 ```go
 package main
@@ -526,26 +527,30 @@ func main() {
 ```
 
 
-## Channels
+## Channels通道
 
-Channels are one of the synchronization primitives in Go derived from Hoare’s CSP. While they can be used to synchronize access of the memory, they are best used to communicate information between goroutines, default value for channel: `nil`.
+channel是Go中从Hoare的CSP派生出来的同步原语之一。虽然它们可以用来同步访问内存，但它们最好是用来在goroutines之间交流信息，channel的默认值为："nil"。
 
-To declare a channel to read and send
+声明一个channel来读取和发送
+
 ```go
 stream := make(chan interface{})
 ```
 
-To declare unidirectional channel that only can read
+channel
+
 ```go
 stream := make(<-chan interface{})
 ```
 
-To declare unidirectional channel that only can send
+声明只能发送的单向channel
+
 ```go
 stream := make(chan<- interface{})
 ```
 
-is not often see the instantiates channels unidirectional, only in parameters in functions, is common because Go convert them implicity
+并不经常看到实例化channel的单向性，只在函数的参数中出现，之所以常见是因为Go将其转换为内含性
+
 ```go
 var receiveChan <-chan interface{}
 var sendChan chan<- interface{}
@@ -556,18 +561,18 @@ receiveChan = dataStream
 sendChan = dataStream
 ```
 
-To receive
+接收
 ```go
 <-stream
 ```
 
-to send
+发送
 ```go
 stream <- "Hello world"
 ```
 
-Ranging over a channel
-the for range break the loop if the channel is closed
+遍历一个channel
+如果channel被关闭，for range会打破循环。
 
 ```go
 intStream := make(chan int)
@@ -583,11 +588,13 @@ for integer := range intStream {
 }
 ```
 
-**unbuffered channel**<br/>
-A send operation on an unbuffered channel blocks the sending goroutine, until another goroutine performs a corresponding receive on the same channel; at that point, the value is passed, and both goroutines can continue. On the other hand, if a receive operation is attempted beforehand, the receiving goroutine is blocked until another goroutine performs a send on the same channel. Communication over an unbuffered channel makes the sending and receiving goroutines synchronize. Because of this, unbuffered channels are sometimes called synchronous channels. When a value is sent over an unbuffered channel, the reception of the value takes place before the sending goroutine wakes up again. In discussions of concurrency, when we say that x occurs before y, we do not simply mean that x occurs before y in time; we mean that this is guaranteed and that all your previous effects like updates to variables will complete and you can count on them. When x does not occur before y or after y, we say that x is concurrent with y. This is not to say that x and y are necessarily simultaneous; it just means that we can't assume anything about your order
+**无缓冲的channel**
 
-**buffered channel**<br/>
-both, read and write of a channel full or empty it will block, on the buffered channel 
+在一个未缓冲的channel上的发送操作会阻塞发送的goroutine，直到另一个goroutine在同一channel上执行相应的接收操作；这时，值被传递，两个goroutine可以继续。另一方面，如果事先尝试了接收操作，接收的goroutine就会被阻塞，直到另一个goroutine在同一channel上执行发送。在无缓冲channel上的通信使发送和接收的goroutine同步。因为这个原因，无缓冲channel有时被称为同步channel。当一个值在非缓冲channel上被发送时，该值的接收会在发送goroutine再次唤醒之前发生。在讨论并发性时，当我们说x发生在y之前时，我们并不是简单地指x在时间上发生在y之前；我们的意思是这是有保证的，你之前的所有效果，如对变量的更新，都将完成，你可以指望它们。当x没有发生在y之前或y之后时，我们说x与y同时发生。这并不是说x和y一定是同时发生的；这只是意味着我们不能假设你的顺序是什么
+
+**有缓冲的channel**<br/>
+
+读和写一个都是满的或空的有缓冲channel，将被阻塞。
 
 ```go
 var dataStream chan interface{}
@@ -595,6 +602,8 @@ dataStream = make(chan interface{}, 4)
 ```
 
 both, read and send a channel empty cause deadlock
+
+既读又送的空的channel会造成死锁
 
 ```go
 var dataStream chan interface{}
@@ -618,7 +627,7 @@ dataStream <- struct{}{} // This produces: fatal error: all goroutines are aslee
   exit status 2
 ```
 
-and a close channel cause a panic
+关闭一个空的channel会panic
 
 ```go
 var dataStream chan interface{}
@@ -633,7 +642,7 @@ close(dataStream) // This produces: panic: close of nil channel
   exit status 2 Yipes! This is probably
 ```
 
-Table with result of channel operations
+channel操作的结果表
 
 Operation | Channel State      | Result
 ----------|--------------------|-------------
@@ -652,21 +661,20 @@ _         | Open and Not Empty | Closes Channel; reads succeed until channel is 
 _         | Open and Empty     | Closes Channel; reads produces default value
 _         | Closed             | panic
 
+`TIP: 无法关闭一个只接收的channel`
 
-`TIP: Cannot close a receive-only channel`
+* 让我们从channel所有者开始。拥有一个channel的goroutine必须。
+  * 1 - 实例化该channel。 
+  * 2 - 执行写操作，或将所有权传递给另一个goroutine。 
+  * 3 - 关闭该channel。 
+  * 4 - 封装这个列表中的前三件事，并通过一个读channel暴露它们。
 
-* Let's start with channel owners. The goroutine that has a channel must:
-    * 1 - Instantiate the channel.  
-    * 2 - Perform writes, or pass ownership to another goroutine.  
-    * 3 - Close the channel.  
-    * 4 - Encapsulate the previous three things in this list and expose them via a reader channel.
-
-* When assigning channel owners responsibilities, a few things happen:
-    * 1 - Because we’re the one initializing the channel, we remove the risk of deadlocking by writing to a nil channel.  
-    * 2 - Because we’re the one initializing the channel, we remove the risk of panicing by closing a nil channel.  
-    * 3 - Because we’re the one who decides when the channel gets closed, we remove the risk of panicing by writing to a closed channel.  
-    * 4 - Because we’re the one who decides when the channel gets closed, we remove the risk of panicing by closing a channel more than once.  
-    * 5 - We wield the type checker at compile time to prevent improper writes to our channel.
+* 当分配channel所有者的职责时，有几件事会发生。
+  * 1 - 因为我们是初始化channel的人，所以我们消除了向一个nil channel写东西而造成的死锁风险。 
+  * 2 - 因为我们是初始化channel的人，所以我们消除了因关闭一个空的channel而引起的panic的风险。 
+  * 3 - 因为我们是决定channel何时被关闭的人，所以我们通过向一个关闭的channel写东西来消除panic的风险。 
+  * 4 - 因为我们是决定channel何时被关闭的人，所以我们消除了因多次关闭channel而panic的风险。 
+  * 5 - 我们在编译时挥舞着类型检查器，以防止对我们的channel进行不当的写入。
 
 ```go
 chanOwner := func() <-chan int {
@@ -688,12 +696,11 @@ for result := range resultStream {
 fmt.Println("Done receiving!")
 ```
 
-The creation of channel owners explicitly tends to have greater control of when that channel should be closed and its operation, avoiding the delegation of these functions to other methods/functions of the system, avoiding reading closed channels or sending data to the same already finalized
-
+明确创建channel的所有者，往往能更好地控制该channel何时应被关闭及其操作，避免将这些功能委托给系统的其他方法/功能，避免读取已关闭的channel或向同一已完成的channel发送数据
 
 **select**
 
-the select cases do not work the same as the switch, which is sequential, and the execution will not automatically fall if none of the criteria is met.
+select的工作方式与switch不一样，switch是顺序的，如果没有一个条件得到满足，执行不会自动下降。
 
 ```go
 var c1, c2 <-chan interface{}
@@ -708,7 +715,7 @@ case c3<- struct{}{}:
 }
 ```
 
-Instead, all channel reads and writes are considered simultaneously to see if any of them are ready: channels filled or closed in the case of reads and channels not at capacity in the case of writes. If none of the channels are ready, the entire select command is blocked. Then, when one of the channels is ready, the operation will proceed and its corresponding instructions will be executed.
+相反，所有的channel读和写都是同时考虑的，看是否有channel准备好了：在读的情况下，channel被填满或关闭，在写的情况下，channel没有达到容量。如果没有一个channel准备好了，整个选择命令就会被阻断。然后，当其中一个channel准备好时，操作将继续进行，其相应的指令将被执行。
 
 ```go
 start := time.Now()
@@ -727,7 +734,9 @@ case <-c:
 
 questions when work with select and channels
 
-1 - What happens when multiple channels have something to read?  
+select和channel工作时的问题
+
+1 - 当多个channel有东西要读时，会发生什么？ 
 
 ```go
 c1 := make(chan interface{}); close(c1)
@@ -747,16 +756,15 @@ fmt.Printf("c1Count: %d\nc2Count: %d\n", c1Count, c2Count)
 ```
 
 This produces:<br/>
-c1Count: 505<br/>
-c2Count: 496<br/>
+c1总数: 505<br/>
+c2总数: 496<br/>
 
-half is read by c1 half by c2 by the Go runtime, cannot exactly predict how much each will be read, and will not be exactly the same for both, it can happen but cannot be predicted, the runtime knows nothing about the intent to own 2 channels receiving information or closed as in our example, then the runtime includes a pseudo-random
-Go runtime will perform a pseudo-random uniform selection over the select case statement set. This just means that from your set of cases, each one has the same chance of being selected as all the others. 
+一半由c1读取一半由c2读取的Go运行时，无法准确预测各自的读取量，也不会对两者完全相同，可能发生但无法预测，运行时对拥有2个channel接收信息的意图一无所知，或者像我们的例子那样关闭，那么运行时包括一个伪随机的
+Go运行时将对select案例语句集进行伪随机统一选择。这只是意味着从你的案例集中，每一个案例都有和其他所有案例一样的机会被选中。
 
-A good way to do this is to introduce a random variable into your equation - in this case, which channel to select from. By weighing the chance that each channel is used equally, all Go programs that use the select statement will perform well in the average case.
+一个好的方法是在你的方程中引入一个随机变量--在这个例子中，是从哪个channel中选择。通过权衡每个channel被平等使用的机会，所有使用select语句的Go程序在平均情况下都会表现良好。
 
-
-2 - What if there are never any channels that become ready?  
+2 - 如果从来没有任何channel准备就绪，怎么办？ 
 
 ```go
 var c <-chan int
@@ -768,10 +776,9 @@ case <-time.After(1 * time.Second):
 
 ```
 
-To solve the problem of the channels being blocked, the default can be used to perform some other operation, or in the first example
-a time out with time.After
+为了解决channel被阻塞的问题，可以使用默认的方式来执行一些其他操作，或者在第一个例子中用time.After进行超时处理
 
-3 - What if we want to do something but no channels are currently ready? use `default`
+3 - 如果我们想做什么，但目前没有channel准备好，怎么办？ 使用`default`。
 
 ```go
 start := time.Now()
@@ -784,7 +791,7 @@ default:
 }
 ```
 
-exit a select block 
+退出一个select块 
 
 ```go
 done := make(chan interface{})
@@ -810,7 +817,7 @@ for {
 fmt.Printf("Achieved %v cycles of work before signalled to stop.\n", workCounter)
 ```
 
-block forever 
+永远阻塞 
 
 ```go
 select {}
@@ -819,17 +826,22 @@ select {}
 **GOMAXPROCS**<br/>
 Prior to Go 1.5, GOMAXPROCS was always set to one, and usually you’d find this snippet in most Go programs:
 
+在Go 1.5之前，GOMAXPROCS总是被设置为1，通常你会在大多数Go程序中发现这个片段。
+
 ```go
 runtime.GOMAXPROCS(runtime.NumCPU())
 ```
 
 This function controls the number of operating system threads that will host so-called “Work Queues.”
+
+该功能控制操作系统线程的数量，这些线程将承载所谓的 "工作队列"。
+
 [documentation](https://pkg.go.dev/runtime#GOMAXPROCS)
 
 
 [Use a sync.Mutex or a channel?](https://github.com/golang/go/wiki/MutexOrChannel)
 
-As a general guide, though:
+作为一个一般的指导：
 
 Channel | Mutex
 --------|-------
@@ -837,6 +849,8 @@ passing ownership of data, <br/>distributing units of work, <br/>communicating a
 
 
 _"Do not communicate by sharing memory; instead, share memory by communicating. (copies)"_
+
+_"不要通过共享内存来交流；相反，通过交流来共享内存。(复制原话)"_
 
 
 
