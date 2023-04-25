@@ -15,6 +15,7 @@ This guide is built on top of the some examples of the book `Go Concurrency in G
     -  [Livelocks](#livelocks)
     -  [Starvation](#starvation)
 - [Channels](#channels)
+    -  [Select](#select)
 - [Patterns](#patterns)
     - [Confinement](#confinement)
     - [Cancellation](#cancellation)
@@ -51,6 +52,8 @@ func main() {
     }
 }
 ```
+
+[See more](https://github.com/luk4z7/go-concurrency-guide/blob/main/datarace)
 
 
 ## Memory Access Synchonization
@@ -378,6 +381,24 @@ func main() {
 }
 ```
 
+except when the channel is buffered, we will se more about buffers on channels
+```go
+package main
+
+func main() {
+    c := make(chan int, 3)
+    c <- 1
+
+    println(<-c)
+}
+
+// Output:
+// 1
+```
+
+we don't have `all goroutines are asleep - deadlock!` because only the value has been copied to the buffer
+and we don't need two goroutines syncronazion between then, unbuffered otherwise or empty-buffered channels are the only operations where one running goroutine writes to the stack of another running goroutine
+
 
 ### Livelocks
 
@@ -526,7 +547,7 @@ func main() {
 ```
 
 
-## Channels
+### Channels
 
 Channels are one of the synchronization primitives in Go derived from Hoare’s CSP. While they can be used to synchronize access of the memory, they are best used to communicate information between goroutines, default value for channel: `nil`.
 
@@ -567,7 +588,7 @@ stream <- "Hello world"
 ```
 
 Ranging over a channel
-the for range break the loop if the channel is closed
+the for range break the loop if the channel is closed, if the channel is nil, the range expression blocks forever. 
 
 ```go
 intStream := make(chan int)
@@ -583,18 +604,68 @@ for integer := range intStream {
 }
 ```
 
-**unbuffered channel**<br/>
+### Unbuffered channel
+
 A send operation on an unbuffered channel blocks the sending goroutine, until another goroutine performs a corresponding receive on the same channel; at that point, the value is passed, and both goroutines can continue. On the other hand, if a receive operation is attempted beforehand, the receiving goroutine is blocked until another goroutine performs a send on the same channel. Communication over an unbuffered channel makes the sending and receiving goroutines synchronize. Because of this, unbuffered channels are sometimes called synchronous channels. When a value is sent over an unbuffered channel, the reception of the value takes place before the sending goroutine wakes up again. In discussions of concurrency, when we say that x occurs before y, we do not simply mean that x occurs before y in time; we mean that this is guaranteed and that all your previous effects like updates to variables will complete and you can count on them. When x does not occur before y or after y, we say that x is concurrent with y. This is not to say that x and y are necessarily simultaneous; it just means that we can't assume anything about your order
 
-**buffered channel**<br/>
-both, read and write of a channel full or empty it will block, on the buffered channel 
+Unbuffered channels combine communication—the exchange of a value—with synchronization—guaranteeing that two calculations (goroutines) are in a known state.
 
 ```go
-var dataStream chan interface{}
-dataStream = make(chan interface{}, 4)
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	var sv = make(chan string) // unbuffered
+	catch := func(s string) {
+		for {
+			fmt.Println("received: ", <-sv)
+			time.Sleep(time.Second)
+
+			sv <- s
+		}
+	}
+	// when we send before any of the goroutines below we have a panic
+	// because there are not receiver wait for us like: <-ball, to synchronize.
+	// only if we use a buffered channel var sv = make(chan string, 2)
+	//sv <- "start" // panic
+	go catch("a")
+	go catch("b")
+	sv <- "start"
+	select {}
+}
 ```
 
-both, read and send a channel empty cause deadlock
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	var sv = make(chan string, 2) // buffered
+	catch := func(s string) {
+		for {
+			fmt.Println("received: ", <-sv)
+			time.Sleep(time.Second)
+
+			sv <- s
+		}
+	}
+	sv <- "start" // works because var sv = make(chan string, 2)
+	go catch("a")
+	go catch("b")
+	// sv <- "start"
+	select {}
+}
+```
+
+both, read and send a channel empty cause deadlock on the unbuffered channel
 
 ```go
 var dataStream chan interface{}
@@ -633,7 +704,83 @@ close(dataStream) // This produces: panic: close of nil channel
   exit status 2 Yipes! This is probably
 ```
 
-Table with result of channel operations
+### Buffered channel
+
+When the channel has a buffer, the sender blocks only until the value has been copied to the buffer; if the buffer is full, this means waiting until some receiver has retrieved a value.
+
+When value has been copied to the buffer, we can see when when we close the channel the information is not lost
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    m := make(chan int, 2) // a buffered channel
+    m <- 1
+    m <- 2
+    close(m)
+    fmt.Println(len(m), cap(m)) // 2 2
+
+    c, ok := <-m
+    fmt.Println(c, ok, len(m), cap(m)) // 1 true 1
+
+    c, ok = <-m
+    fmt.Println(c, ok, len(m), cap(m)) // 2 true 0 2
+
+    c, ok = <-m
+    fmt.Println(c, ok, len(m), cap(m)) // 0 false 0 2
+    // Output:
+    // 2 2
+    // 1 true 1 2
+    // 2 true 0 2
+    // 0 false 0 2
+}
+```
+
+Both, read from a channel empty and write of a channel full it will block, on the buffered channel.
+
+```go
+dataStream := make(chan interface{}, 4)
+<-dataStream
+```
+```go
+goroutine 1 [chan receive]:
+main.main()
+	/tmp/babel-23079IVB/go-src-23079O4q.go:9 +0x3f
+exit status
+```
+
+```go
+dataStream := make(chan interface{}, 2)
+dataStream <- struct{}{}
+dataStream <- struct{}{}
+dataStream <- struct{}{}
+```
+```go
+goroutine 1 [chan send]:
+main.main()
+	/tmp/babel-23079IVB/go-src-23079O4q.go:9 +0x3f
+exit status 2
+```
+
+Both the channel and the value expression are evaluated before communication begins. 
+Communication blocks until the send can proceed. A send on an unbuffered channel can proceed if a receiver is ready. 
+A send on a buffered channel can proceed if there is room in the buffer. A send on a closed channel proceeds by causing a run-time panic. 
+A send on a nil channel blocks forever. 
+
+
+### Size of a channel
+
+The size of channel element types must be smaller than 65536. but we shouldn't create channels with large-size element types, 
+to avoid too large copy cost in the process of transferring values between goroutines. 
+So if the passed value size is too large, it is best to use a pointer element type instead, to avoid a large value copy cost
+
+A channel is referenced by all the goroutines in either the sending or the receiving goroutine queue of the channel, 
+so if neither of the queues of the channel is empty, the channel cannot be garbage collected
+
+
+### Table with result of channel operations
 
 Operation | Channel State      | Result
 ----------|--------------------|-------------
@@ -668,6 +815,9 @@ _         | Closed             | panic
     * 4 - Because we’re the one who decides when the channel gets closed, we remove the risk of panicing by closing a channel more than once.  
     * 5 - We wield the type checker at compile time to prevent improper writes to our channel.
 
+
+The creation of channel owners explicitly tends to have greater control of when that channel should be closed and its operation, avoiding the delegation of these functions to other methods/functions of the system, avoiding reading closed channels or sending data to the same already finalized
+
 ```go
 chanOwner := func() <-chan int {
     resultStream := make(chan int, 5) 
@@ -688,12 +838,10 @@ for result := range resultStream {
 fmt.Println("Done receiving!")
 ```
 
-The creation of channel owners explicitly tends to have greater control of when that channel should be closed and its operation, avoiding the delegation of these functions to other methods/functions of the system, avoiding reading closed channels or sending data to the same already finalized
 
+## Select
 
-**select**
-
-the select cases do not work the same as the switch, which is sequential, and the execution will not automatically fall if none of the criteria is met.
+the select cases do not work the same as the switch, which is sequential, and the execution will not automatically fall if none of the criteria is met, which is specially designed for channels.
 
 ```go
 var c1, c2 <-chan interface{}
@@ -722,65 +870,6 @@ fmt.Println("Blocking on read...")
 select {
 case <-c: 
     fmt.Printf("Unblocked %v later.\n", time.Since(start))
-}
-```
-
-questions when work with select and channels
-
-1 - What happens when multiple channels have something to read?  
-
-```go
-c1 := make(chan interface{}); close(c1)
-c2 := make(chan interface{}); close(c2)
-
-var c1Count, c2Count int
-for i := 1000; i >= 0; i-- {
-    select {
-    case <-c1:
-        c1Count++
-    case <-c2:
-        c2Count++
-    }
-}
-
-fmt.Printf("c1Count: %d\nc2Count: %d\n", c1Count, c2Count)
-```
-
-This produces:<br/>
-c1Count: 505<br/>
-c2Count: 496<br/>
-
-half is read by c1 half by c2 by the Go runtime, cannot exactly predict how much each will be read, and will not be exactly the same for both, it can happen but cannot be predicted, the runtime knows nothing about the intent to own 2 channels receiving information or closed as in our example, then the runtime includes a pseudo-random
-Go runtime will perform a pseudo-random uniform selection over the select case statement set. This just means that from your set of cases, each one has the same chance of being selected as all the others. 
-
-A good way to do this is to introduce a random variable into your equation - in this case, which channel to select from. By weighing the chance that each channel is used equally, all Go programs that use the select statement will perform well in the average case.
-
-
-2 - What if there are never any channels that become ready?  
-
-```go
-var c <-chan int
-select {
-case <-c: 
-case <-time.After(1 * time.Second):
-    fmt.Println("Timed out.")
-}
-
-```
-
-To solve the problem of the channels being blocked, the default can be used to perform some other operation, or in the first example
-a time out with time.After
-
-3 - What if we want to do something but no channels are currently ready? use `default`
-
-```go
-start := time.Now()
-var c1, c2 <-chan int
-select {
-case <-c1:
-case <-c2:
-default:
-    fmt.Printf("In default after %v\n\n", time.Since(start))
 }
 ```
 
@@ -814,6 +903,67 @@ block forever
 
 ```go
 select {}
+```
+
+### Questions about channels
+
+when work with select and channels
+
+**1 - What happens when multiple channels have something to read?**
+
+```go
+c1 := make(chan interface{}); close(c1)
+c2 := make(chan interface{}); close(c2)
+
+var c1Count, c2Count int
+for i := 1000; i >= 0; i-- {
+    select {
+    case <-c1:
+        c1Count++
+    case <-c2:
+        c2Count++
+    }
+}
+
+fmt.Printf("c1Count: %d\nc2Count: %d\n", c1Count, c2Count)
+```
+
+This produces:<br/>
+c1Count: 505<br/>
+c2Count: 496<br/>
+
+half is read by c1 half by c2 by the Go runtime, cannot exactly predict how much each will be read, and will not be exactly the same for both, it can happen but cannot be predicted, the runtime knows nothing about the intent to own 2 channels receiving information or closed as in our example, then the runtime includes a pseudo-random
+Go runtime will perform a pseudo-random uniform selection over the select case statement set. This just means that from your set of cases, each one has the same chance of being selected as all the others. 
+
+A good way to do this is to introduce a random variable into your equation - in this case, which channel to select from. By weighing the chance that each channel is used equally, all Go programs that use the select statement will perform well in the average case.
+
+
+**2 - What if there are never any channels that become ready?**
+
+```go
+var c <-chan int
+select {
+case <-c: 
+case <-time.After(1 * time.Second):
+    fmt.Println("Timed out.")
+}
+
+```
+
+To solve the problem of the channels being blocked, the default can be used to perform some other operation, or in the first example
+a time out with `time.After`
+
+**3 - What if we want to do something but no channels are currently ready? use `default`**
+
+```go
+start := time.Now()
+var c1, c2 <-chan int
+select {
+case <-c1:
+case <-c2:
+default:
+    fmt.Printf("In default after %v\n\n", time.Since(start))
+}
 ```
 
 **GOMAXPROCS**<br/>
@@ -1640,3 +1790,5 @@ Go schedule put her  goroutines on kernel threads which run on the CPU
 
 [Go Concurrency in Go](https://katherine.cox-buday.com/concurrency-in-go)
 
+
+[Go 101](https://go101.org/article/channel.html)
